@@ -1,0 +1,16 @@
+.. index:: aerostruct_groups.py
+
+.. _openaerostruct.integration.aerostruct_groups.py:
+
+aerostruct_groups.py
+--------------------
+
+.. automodule:: openaerostruct.integration.aerostruct_groups
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

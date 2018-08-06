@@ -1,0 +1,16 @@
+.. index:: radius_comp.py
+
+.. _openaerostruct.geometry.radius_comp.py:
+
+radius_comp.py
+--------------
+
+.. automodule:: openaerostruct.geometry.radius_comp
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

@@ -1,0 +1,16 @@
+.. index:: spatial_beam_states.py
+
+.. _openaerostruct.structures.spatial_beam_states.py:
+
+spatial_beam_states.py
+----------------------
+
+.. automodule:: openaerostruct.structures.spatial_beam_states
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

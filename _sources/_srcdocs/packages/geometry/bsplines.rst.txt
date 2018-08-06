@@ -1,0 +1,16 @@
+.. index:: bsplines.py
+
+.. _openaerostruct.geometry.bsplines.py:
+
+bsplines.py
+-----------
+
+.. automodule:: openaerostruct.geometry.bsplines
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

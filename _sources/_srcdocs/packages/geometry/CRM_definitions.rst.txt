@@ -1,0 +1,16 @@
+.. index:: CRM_definitions.py
+
+.. _openaerostruct.geometry.CRM_definitions.py:
+
+CRM_definitions.py
+------------------
+
+.. automodule:: openaerostruct.geometry.CRM_definitions
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

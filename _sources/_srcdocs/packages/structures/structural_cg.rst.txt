@@ -1,0 +1,16 @@
+.. index:: structural_cg.py
+
+.. _openaerostruct.structures.structural_cg.py:
+
+structural_cg.py
+----------------
+
+.. automodule:: openaerostruct.structures.structural_cg
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

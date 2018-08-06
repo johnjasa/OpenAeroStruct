@@ -1,0 +1,14 @@
+openaerostruct.geometry
+-----------------------
+
+.. toctree::
+    :maxdepth: 1
+
+    geometry/CRM_definitions
+    geometry/bsplines
+    geometry/ffd_component
+    geometry/geometry_group
+    geometry/geometry_mesh
+    geometry/monotonic_constraint
+    geometry/radius_comp
+    geometry/utils

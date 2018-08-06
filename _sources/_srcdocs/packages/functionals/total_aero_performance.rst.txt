@@ -1,0 +1,16 @@
+.. index:: total_aero_performance.py
+
+.. _openaerostruct.functionals.total_aero_performance.py:
+
+total_aero_performance.py
+-------------------------
+
+.. automodule:: openaerostruct.functionals.total_aero_performance
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

@@ -1,0 +1,228 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>openaerostruct.structures.wingbox_geometry &#8212; OpenAeroStruct 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../more_examples.html">More Examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../specialty_topics.html">Specialty Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for openaerostruct.structures.wingbox_geometry</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="k">import</span> <span class="n">ExplicitComponent</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.utils</span> <span class="k">import</span> <span class="n">norm</span>
+
+<div class="viewcode-block" id="WingboxGeometry"><a class="viewcode-back" href="../../../_srcdocs/packages/structures/wingbox_geometry.html#openaerostruct.structures.wingbox_geometry.WingboxGeometry">[docs]</a><span class="k">class</span> <span class="nc">WingboxGeometry</span><span class="p">(</span><span class="n">ExplicitComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    OpenMDAO component that performs mesh manipulation functions. It reads in</span>
+<span class="sd">    the initial mesh from the surface dictionary and outputs the altered</span>
+<span class="sd">    mesh based on the geometric design variables.</span>
+
+<span class="sd">    Depending on the design variables selected or the supplied geometry information,</span>
+<span class="sd">    only some of the follow parameters will actually be given to this component.</span>
+<span class="sd">    If parameters are not active (they do not deform the mesh), then</span>
+<span class="sd">    they will not be given to this component.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sweep : float</span>
+<span class="sd">        Shearing sweep angle in degrees.</span>
+<span class="sd">    dihedral : float</span>
+<span class="sd">        Dihedral angle in degrees.</span>
+<span class="sd">    twist[ny] : numpy array</span>
+<span class="sd">        1-D array of rotation angles for each wing slice in degrees.</span>
+<span class="sd">    chord_dist[ny] : numpy array</span>
+<span class="sd">        Chord length for each panel edge.</span>
+<span class="sd">    taper : float</span>
+<span class="sd">        Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mesh[nx, ny, 3] : numpy array</span>
+<span class="sd">        Modified mesh based on the initial mesh in the surface dictionary and</span>
+<span class="sd">        the geometric design variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="WingboxGeometry.initialize"><a class="viewcode-back" href="../../../_srcdocs/packages/structures/wingbox_geometry.html#openaerostruct.structures.wingbox_geometry.WingboxGeometry.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surface&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WingboxGeometry.setup"><a class="viewcode-back" href="../../../_srcdocs/packages/structures/wingbox_geometry.html#openaerostruct.structures.wingbox_geometry.WingboxGeometry.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">]</span>
+        <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;streamwise_chords&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;fem_chords&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;fem_twists&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;cs&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WingboxGeometry.compute"><a class="viewcode-back" href="../../../_srcdocs/packages/structures/wingbox_geometry.html#openaerostruct.structures.wingbox_geometry.WingboxGeometry.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+        <span class="n">mesh</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">]</span>
+        <span class="n">vectors</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">mesh</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="n">streamwise_chords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">vectors</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">streamwise_chords</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">streamwise_chords</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">streamwise_chords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="c1"># Chord lengths for the panel strips at the panel midpoint</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;streamwise_chords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">streamwise_chords</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">fem_twists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">streamwise_chords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">fem_chords</span> <span class="o">=</span> <span class="n">streamwise_chords</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surface</span>
+
+        <span class="c1"># Gets the shear center by looking at the four corners.</span>
+        <span class="c1"># Assumes same spar thickness for front and rear spar.</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_x_upper&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span><span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_upper&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_lower&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> \
+        <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_x_upper&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_upper&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_lower&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span> <span class="o">/</span> \
+        <span class="p">(</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_upper&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_lower&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_upper&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;data_y_lower&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="c1"># TODO: perhaps replace this or link with existing nodes computation</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">w</span><span class="p">)</span> <span class="o">*</span> <span class="n">mesh</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">w</span> <span class="o">*</span> <span class="n">mesh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="n">mesh_vectors</span> <span class="o">=</span> <span class="n">mesh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">mesh</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="c1"># Loop over spanwise elements</span>
+        <span class="k">for</span> <span class="n">ielem</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+
+            <span class="c1"># Obtain the element nodes</span>
+            <span class="n">P0</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">ielem</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">P1</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">ielem</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="n">elem_vec</span> <span class="o">=</span> <span class="p">(</span><span class="n">P1</span> <span class="o">-</span> <span class="n">P0</span><span class="p">)</span> <span class="c1"># vector along element</span>
+            <span class="n">temp_vec</span> <span class="o">=</span> <span class="n">elem_vec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">temp_vec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span> <span class="c1"># vector along element without x component</span>
+
+            <span class="c1"># This is used to get chord length normal to FEM element.</span>
+            <span class="c1"># To be clear, this 3D angle sweep measure.</span>
+            <span class="c1"># This is the projection to the wing orthogonal to the FEM direction.</span>
+            <span class="n">cos_theta_fe_sweep</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">temp_vec</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">elem_vec</span><span class="p">)</span>
+            <span class="n">fem_chords</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span> <span class="o">=</span> <span class="n">fem_chords</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span> <span class="o">*</span> <span class="n">cos_theta_fe_sweep</span>
+
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;fem_chords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fem_chords</span>
+
+        <span class="c1"># Loop over spanwise elements</span>
+        <span class="k">for</span> <span class="n">ielem</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+
+            <span class="c1"># The following is used to approximate the twist angle for the section normal to the FEM element</span>
+            <span class="n">mesh_vec_0</span> <span class="o">=</span> <span class="n">mesh_vectors</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span>
+            <span class="n">temp_mesh_vectors_0</span> <span class="o">=</span> <span class="n">mesh_vec_0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">temp_mesh_vectors_0</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="n">cos_twist_0</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">temp_mesh_vectors_0</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">mesh_vec_0</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">cos_twist_0</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="p">:</span>
+                <span class="n">theta_0</span> <span class="o">=</span> <span class="mf">0.</span> <span class="c1"># to prevent nan in case value for arccos is greater than 1 due to machine precision</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">theta_0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">cos_twist_0</span><span class="p">)</span>
+
+            <span class="n">mesh_vec_1</span> <span class="o">=</span> <span class="n">mesh_vectors</span><span class="p">[</span><span class="n">ielem</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">temp_mesh_vectors_1</span> <span class="o">=</span> <span class="n">mesh_vec_1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">temp_mesh_vectors_1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="n">cos_twist_1</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">temp_mesh_vectors_1</span><span class="p">)</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">mesh_vec_1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">cos_twist_1</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="p">:</span>
+                <span class="n">theta_1</span> <span class="o">=</span> <span class="mf">0.</span> <span class="c1"># to prevent nan in case value for arccos is greater than 1 due to machine precision</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">theta_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">cos_twist_1</span><span class="p">)</span>
+
+            <span class="n">fem_twists</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">theta_0</span> <span class="o">+</span> <span class="n">theta_1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">streamwise_chords</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span> <span class="o">/</span> <span class="n">fem_chords</span><span class="p">[</span><span class="n">ielem</span><span class="p">]</span>
+
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;fem_twists&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fem_twists</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Aug 06, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.6.
+    </div>
+  </body>
+</html>

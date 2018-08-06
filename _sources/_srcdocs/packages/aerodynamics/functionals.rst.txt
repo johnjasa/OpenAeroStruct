@@ -1,0 +1,16 @@
+.. index:: functionals.py
+
+.. _openaerostruct.aerodynamics.functionals.py:
+
+functionals.py
+--------------
+
+.. automodule:: openaerostruct.aerodynamics.functionals
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

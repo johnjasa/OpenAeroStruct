@@ -1,0 +1,20 @@
+openaerostruct.aerodynamics
+---------------------------
+
+.. toctree::
+    :maxdepth: 1
+
+    aerodynamics/aero_groups
+    aerodynamics/assemble_aic
+    aerodynamics/circulations
+    aerodynamics/coeffs
+    aerodynamics/forces
+    aerodynamics/functionals
+    aerodynamics/geometry
+    aerodynamics/lift_coeff_2D
+    aerodynamics/lift_drag
+    aerodynamics/states
+    aerodynamics/total_drag
+    aerodynamics/total_lift
+    aerodynamics/utils
+    aerodynamics/viscous_drag

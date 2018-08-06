@@ -1,0 +1,390 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>openaerostruct.geometry.geometry_mesh &#8212; OpenAeroStruct 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../more_examples.html">More Examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../specialty_topics.html">Specialty Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for openaerostruct.geometry.geometry_mesh</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Manipulate geometry mesh based on high-level design parameters. &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">openaerostruct.geometry.utils</span> <span class="k">import</span> \
+    <span class="n">rotate</span><span class="p">,</span> <span class="n">scale_x</span><span class="p">,</span> <span class="n">shear_x</span><span class="p">,</span> <span class="n">shear_y</span><span class="p">,</span> <span class="n">shear_z</span><span class="p">,</span> \
+    <span class="n">sweep</span><span class="p">,</span> <span class="n">dihedral</span><span class="p">,</span> <span class="n">stretch</span><span class="p">,</span> <span class="n">taper</span>
+
+<span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="k">import</span> <span class="n">ExplicitComponent</span>
+<span class="kn">from</span> <span class="nn">openaerostruct.structures.utils</span> <span class="k">import</span> <span class="n">radii</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">openaerostruct.fortran</span> <span class="k">import</span> <span class="n">OAS_API</span>
+    <span class="n">fortran_flag</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">data_type</span> <span class="o">=</span> <span class="nb">float</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">fortran_flag</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">data_type</span> <span class="o">=</span> <span class="nb">complex</span>
+
+
+<div class="viewcode-block" id="GeometryMesh"><a class="viewcode-back" href="../../../_srcdocs/packages/geometry/geometry_mesh.html#openaerostruct.geometry.geometry_mesh.GeometryMesh">[docs]</a><span class="k">class</span> <span class="nc">GeometryMesh</span><span class="p">(</span><span class="n">ExplicitComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    OpenMDAO component that performs mesh manipulation functions. It reads in</span>
+<span class="sd">    the initial mesh from the surface dictionary and outputs the altered</span>
+<span class="sd">    mesh based on the geometric design variables.</span>
+
+<span class="sd">    Depending on the design variables selected or the supplied geometry information,</span>
+<span class="sd">    only some of the follow parameters will actually be given to this component.</span>
+<span class="sd">    If parameters are not active (they do not deform the mesh), then</span>
+<span class="sd">    they will not be given to this component.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    sweep : float</span>
+<span class="sd">        Shearing sweep angle in degrees.</span>
+<span class="sd">    dihedral : float</span>
+<span class="sd">        Dihedral angle in degrees.</span>
+<span class="sd">    twist[ny] : numpy array</span>
+<span class="sd">        1-D array of rotation angles for each wing slice in degrees.</span>
+<span class="sd">    chord_dist[ny] : numpy array</span>
+<span class="sd">        Chord length for each panel edge.</span>
+<span class="sd">    taper : float</span>
+<span class="sd">        Taper ratio for the wing; 1 is untapered, 0 goes to a point at the tip.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mesh[nx, ny, 3] : numpy array</span>
+<span class="sd">        Modified mesh based on the initial mesh in the surface dictionary and</span>
+<span class="sd">        the geometric design variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GeometryMesh.initialize"><a class="viewcode-back" href="../../../_srcdocs/packages/geometry/geometry_mesh.html#openaerostruct.geometry.geometry_mesh.GeometryMesh.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surface&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GeometryMesh.setup"><a class="viewcode-back" href="../../../_srcdocs/packages/geometry/geometry_mesh.html#openaerostruct.geometry.geometry_mesh.GeometryMesh.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">surface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surface&#39;</span><span class="p">]</span>
+
+        <span class="n">ny</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span> <span class="o">=</span> <span class="n">geo_params</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="s1">&#39;taper&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="k">if</span> <span class="s1">&#39;sweep&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">if</span> <span class="s1">&#39;dihedral&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">if</span> <span class="s1">&#39;span&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Compute span. We need .real to make span to avoid OpenMDAO warnings.</span>
+            <span class="n">quarter_chord</span> <span class="o">=</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">+</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">span</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">quarter_chord</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">real</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">quarter_chord</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">if</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;symmetry&#39;</span><span class="p">]:</span>
+                <span class="n">span</span> <span class="o">*=</span> <span class="mf">2.</span>
+            <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">span</span>
+
+        <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+        <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+        <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+        <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+        <span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ny</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;twist_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;twist&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s1">&#39;chord_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;chord&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;xshear_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;xshear&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;yshear_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;yshear&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;zshear_cp&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;zshear&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;sweep&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;sweep&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;dihedral&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;dihedral&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">],</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;deg&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;taper&#39;</span> <span class="ow">in</span> <span class="n">surface</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;taper&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;symmetry&#39;</span><span class="p">]</span>
+
+        <span class="c1"># This flag determines whether or not changes in z (dihedral) add an</span>
+        <span class="c1"># additional rotation matrix to modify the twist direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotate_x</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fortran_flag</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;fd&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GeometryMesh.compute"><a class="viewcode-back" href="../../../_srcdocs/packages/geometry/geometry_mesh.html#openaerostruct.geometry.geometry_mesh.GeometryMesh.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+        <span class="n">mesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="c1"># Dirty hack for now; TODO: fix this</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c1"># This line used to work in Clippy</span>
+        <span class="c1"># self.geo_params.update(inputs)</span>
+
+        <span class="k">if</span> <span class="n">fortran_flag</span><span class="p">:</span>
+            <span class="n">mesh</span> <span class="o">=</span> <span class="n">OAS_API</span><span class="o">.</span><span class="n">oas_api</span><span class="o">.</span><span class="n">manipulate_mesh</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">taper</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">)</span>
+            <span class="n">scale_x</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">])</span>
+            <span class="n">sweep</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">)</span>
+            <span class="n">shear_x</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">])</span>
+            <span class="n">stretch</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">)</span>
+            <span class="n">shear_y</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">])</span>
+            <span class="n">dihedral</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">)</span>
+            <span class="n">shear_z</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">])</span>
+            <span class="n">rotate</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">)</span>
+
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh</span></div>
+
+    <span class="k">if</span> <span class="n">fortran_flag</span><span class="p">:</span>
+<div class="viewcode-block" id="GeometryMesh.compute_partials"><a class="viewcode-back" href="../../../_srcdocs/packages/geometry/geometry_mesh.html#openaerostruct.geometry.geometry_mesh.GeometryMesh.compute_partials">[docs]</a>        <span class="k">def</span> <span class="nf">compute_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">partials</span><span class="p">):</span>
+
+            <span class="c1"># We actually use the values in self.geo_params to modify the mesh,</span>
+            <span class="c1"># but we update self.geo_params using the OpenMDAO params here.</span>
+            <span class="c1"># This makes the geometry manipulation process work for any combination</span>
+            <span class="c1"># of design variables without having special logic.</span>
+            <span class="c1"># self.geo_params.update(inputs)</span>
+
+            <span class="c1"># Dirty hack for now; TODO: fix this</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+            <span class="n">mesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+
+                <span class="n">d_inputs</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()):</span>
+                        <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">][:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+                        <span class="c1"># We don&#39;t know which parameters will be used for a given case</span>
+                        <span class="c1"># so we must check</span>
+                        <span class="k">if</span> <span class="s1">&#39;sweep&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">sweepd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">sweepd</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="k">if</span> <span class="s1">&#39;twist&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">twistd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">twistd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;chord&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">chordd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">chordd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;dihedral&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">dihedrald</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">dihedrald</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="k">if</span> <span class="s1">&#39;taper&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">taperd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">taperd</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="k">if</span> <span class="s1">&#39;xshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">xsheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">xsheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;yshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">ysheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">ysheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;zshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">zsheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">zsheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;span&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">spand</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">spand</span> <span class="o">=</span> <span class="mf">0.</span>
+
+                        <span class="n">_</span><span class="p">,</span> <span class="n">mesh_d</span> <span class="o">=</span> <span class="n">OAS_API</span><span class="o">.</span><span class="n">oas_api</span><span class="o">.</span><span class="n">manipulate_mesh_d</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">],</span> <span class="n">taperd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">],</span> <span class="n">chordd</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">],</span> <span class="n">sweepd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">],</span> <span class="n">xsheard</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">],</span> <span class="n">spand</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">],</span> <span class="n">ysheard</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">],</span> <span class="n">dihedrald</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">],</span> <span class="n">zsheard</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">],</span> <span class="n">twistd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">)</span>
+
+                        <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">][:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh_d</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+                <span class="k">else</span><span class="p">:</span>
+
+                    <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+                    <span class="c1"># We don&#39;t know which parameters will be used for a given case</span>
+                    <span class="c1"># so we must check</span>
+                    <span class="k">if</span> <span class="s1">&#39;sweep&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">sweepd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">sweepd</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="k">if</span> <span class="s1">&#39;twist&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">twistd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">twistd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;chord&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">chordd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">chordd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;dihedral&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">dihedrald</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">dihedrald</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="k">if</span> <span class="s1">&#39;taper&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">taperd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">taperd</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="k">if</span> <span class="s1">&#39;xshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">xsheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">xsheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;yshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">ysheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ysheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;zshear&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">zsheard</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">zsheard</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="s1">&#39;span&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">spand</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">spand</span> <span class="o">=</span> <span class="mf">0.</span>
+
+                    <span class="n">_</span><span class="p">,</span> <span class="n">mesh_d</span> <span class="o">=</span> <span class="n">OAS_API</span><span class="o">.</span><span class="n">oas_api</span><span class="o">.</span><span class="n">manipulate_mesh_d</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;taper&#39;</span><span class="p">],</span> <span class="n">taperd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;chord&#39;</span><span class="p">],</span> <span class="n">chordd</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;sweep&#39;</span><span class="p">],</span> <span class="n">sweepd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;xshear&#39;</span><span class="p">],</span> <span class="n">xsheard</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;span&#39;</span><span class="p">],</span> <span class="n">spand</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;yshear&#39;</span><span class="p">],</span> <span class="n">ysheard</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;dihedral&#39;</span><span class="p">],</span> <span class="n">dihedrald</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;zshear&#39;</span><span class="p">],</span> <span class="n">zsheard</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">geo_params</span><span class="p">[</span><span class="s1">&#39;twist&#39;</span><span class="p">],</span> <span class="n">twistd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">symmetry</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotate_x</span><span class="p">)</span>
+
+                    <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;mesh&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh_d</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Aug 06, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.6.
+    </div>
+  </body>
+</html>

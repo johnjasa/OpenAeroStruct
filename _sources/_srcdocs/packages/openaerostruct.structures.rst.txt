@@ -1,0 +1,30 @@
+openaerostruct.structures
+-------------------------
+
+.. toctree::
+    :maxdepth: 1
+
+    structures/assemble_k
+    structures/compute_nodes
+    structures/create_rhs
+    structures/disp
+    structures/energy
+    structures/failure_exact
+    structures/failure_ks
+    structures/fem
+    structures/non_intersecting_thickness
+    structures/section_properties_tube
+    structures/section_properties_wingbox
+    structures/spar_within_wing
+    structures/spatial_beam_functionals
+    structures/spatial_beam_setup
+    structures/spatial_beam_states
+    structures/struct_groups
+    structures/structural_cg
+    structures/tube_group
+    structures/utils
+    structures/vonmises_tube
+    structures/vonmises_wingbox
+    structures/weight
+    structures/wingbox_geometry
+    structures/wingbox_group

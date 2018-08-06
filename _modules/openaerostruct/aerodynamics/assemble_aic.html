@@ -1,0 +1,452 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>openaerostruct.aerodynamics.assemble_aic &#8212; OpenAeroStruct 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../more_examples.html">More Examples</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../specialty_topics.html">Specialty Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for openaerostruct.aerodynamics.assemble_aic</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">openmdao.api</span> <span class="k">import</span> <span class="n">ExplicitComponent</span>
+
+<span class="kn">from</span> <span class="nn">openaerostruct.aerodynamics.utils</span> <span class="k">import</span> <span class="n">_assemble_AIC_mtx</span><span class="p">,</span> <span class="n">_assemble_AIC_mtx_b</span><span class="p">,</span> \
+    <span class="n">_assemble_AIC_mtx_d</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">openaerostruct.fortran</span> <span class="k">import</span> <span class="n">OAS_API</span>
+    <span class="n">fortran_flag</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">fortran_flag</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">data_type</span> <span class="o">=</span> <span class="nb">float</span>
+
+
+<div class="viewcode-block" id="AssembleAIC"><a class="viewcode-back" href="../../../_srcdocs/packages/aerodynamics/assemble_aic.html#openaerostruct.aerodynamics.assemble_aic.AssembleAIC">[docs]</a><span class="k">class</span> <span class="nc">AssembleAIC</span><span class="p">(</span><span class="n">ExplicitComponent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the circulations based on the AIC matrix and the panel velocities.</span>
+<span class="sd">    Note that the flow tangency condition is enforced at the 3/4 chord point.</span>
+<span class="sd">    There are multiple versions of the first four inputs with one</span>
+<span class="sd">    for each surface defined.</span>
+<span class="sd">    Each of these four inputs has the name of the surface prepended on the</span>
+<span class="sd">    actual input name.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    def_mesh[nx, ny, 3] : numpy array</span>
+<span class="sd">        Array defining the nodal coordinates of the lifting surface.</span>
+<span class="sd">    b_pts[nx-1, ny, 3] : numpy array</span>
+<span class="sd">        Bound points for the horseshoe vortices, found along the 1/4 chord.</span>
+<span class="sd">    c_pts[nx-1, ny-1, 3] : numpy array</span>
+<span class="sd">        Collocation points on the 3/4 chord line where the flow tangency</span>
+<span class="sd">        condition is satisfed. Used to set up the linear system.</span>
+<span class="sd">    normals[nx-1, ny-1, 3] : numpy array</span>
+<span class="sd">        The normal vector for each panel, computed as the cross of the two</span>
+<span class="sd">        diagonals from the mesh points.</span>
+
+<span class="sd">    v : float</span>
+<span class="sd">        Freestream air velocity in m/s.</span>
+<span class="sd">    alpha : float</span>
+<span class="sd">        Angle of attack in degrees.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    AIC[(nx-1)*(ny-1), (nx-1)*(ny-1)] : numpy array</span>
+<span class="sd">        The aerodynamic influence coefficient matrix. Solving the linear system</span>
+<span class="sd">        of AIC * circulations = n * v gives us the circulations for each of the</span>
+<span class="sd">        horseshoe vortices.</span>
+<span class="sd">    rhs[(nx-1)*(ny-1)] : numpy array</span>
+<span class="sd">        The right-hand-side of the linear system that yields the circulations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AssembleAIC.initialize"><a class="viewcode-back" href="../../../_srcdocs/packages/aerodynamics/assemble_aic.html#openaerostruct.aerodynamics.assemble_aic.AssembleAIC.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">declare</span><span class="p">(</span><span class="s1">&#39;surfaces&#39;</span><span class="p">,</span> <span class="n">types</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AssembleAIC.setup"><a class="viewcode-back" href="../../../_srcdocs/packages/aerodynamics/assemble_aic.html#openaerostruct.aerodynamics.assemble_aic.AssembleAIC.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span> <span class="o">=</span> <span class="n">surfaces</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;surfaces&#39;</span><span class="p">]</span>
+
+        <span class="n">tot_panels</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="n">surfaces</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surface</span> <span class="o">=</span> <span class="n">surface</span>
+            <span class="n">ny</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_def_mesh&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_b_pts&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_c_pts&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+            <span class="n">tot_panels</span> <span class="o">+=</span> <span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span> <span class="o">=</span> <span class="n">tot_panels</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m/s&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mf">1.</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;AIC&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">tot_panels</span><span class="p">,</span> <span class="n">tot_panels</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;1/m&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;rhs&#39;</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">tot_panels</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">),</span> <span class="n">units</span><span class="o">=</span><span class="s1">&#39;m/s&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">tot_panels</span><span class="p">,</span> <span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                                   <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">tot_panels</span><span class="p">,</span> <span class="n">tot_panels</span><span class="p">),</span>
+                                   <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fortran_flag</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">declare_partials</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;fd&#39;</span><span class="p">)</span></div>
+
+        <span class="c1"># for surface in self.surfaces:</span>
+        <span class="c1">#     name = surface[&#39;name&#39;]</span>
+        <span class="c1">#     self.declare_partials(&#39;rhs&#39;, name + &#39;_def_mesh&#39;, dependent=False)</span>
+
+<div class="viewcode-block" id="AssembleAIC.compute"><a class="viewcode-back" href="../../../_srcdocs/packages/aerodynamics/assemble_aic.html#openaerostruct.aerodynamics.assemble_aic.AssembleAIC.compute">[docs]</a>    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+
+        <span class="c1"># Actually assemble the AIC matrix</span>
+        <span class="n">_assemble_AIC_mtx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">)</span>
+
+        <span class="c1"># Construct an flattened array with the normals of each surface in order</span>
+        <span class="c1"># so we can do the normals with velocities to set up the right-hand-side</span>
+        <span class="c1"># of the system.</span>
+        <span class="n">flattened_normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">num_panels</span> <span class="o">=</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">flattened_normals</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="n">num_panels</span>
+
+        <span class="c1"># Construct a matrix that is the AIC_mtx dotted by the normals at each</span>
+        <span class="c1"># collocation point. This is used to compute the circulations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span>
+                <span class="n">flattened_normals</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Obtain the freestream velocity direction and magnitude by taking</span>
+        <span class="c1"># alpha into account</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+        <span class="n">cosa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">sina</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">v_inf</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosa</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sina</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data_type</span><span class="p">)</span>
+
+        <span class="c1"># Populate the right-hand side of the linear system with the</span>
+        <span class="c1"># expected velocities at each collocation point</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">flattened_normals</span><span class="o">.</span>\
+            <span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">flattened_normals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_inf</span><span class="p">)</span>
+
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span></div>
+
+
+    <span class="k">if</span> <span class="n">fortran_flag</span><span class="p">:</span>
+        <span class="k">if</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">compute_jacvec_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_outputs</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;fwd&#39;</span><span class="p">:</span>
+
+                    <span class="n">AIC_mtxd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                    <span class="c1"># Actually assemble the AIC matrix</span>
+                    <span class="n">_assemble_AIC_mtx_d</span><span class="p">(</span><span class="n">AIC_mtxd</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">)</span>
+
+                    <span class="c1"># Construct an flattened array with the normals of each surface in order</span>
+                    <span class="c1"># so we can do the normals with velocities to set up the right-hand-side</span>
+                    <span class="c1"># of the system.</span>
+                    <span class="n">flattened_normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                    <span class="n">flattened_normalsd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">:</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                        <span class="n">num_panels</span> <span class="o">=</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">flattened_normals</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> \
+                            <span class="n">inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">name</span><span class="o">+</span><span class="s1">&#39;_normals&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">flattened_normalsd</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> \
+                                <span class="n">d_inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">flattened_normalsd</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="n">num_panels</span>
+
+                    <span class="c1"># Construct a matrix that is the AIC_mtx dotted by the normals at each</span>
+                    <span class="c1"># collocation point. This is used to compute the circulations</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">AIC_mtxd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span>
+                            <span class="n">flattened_normals</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span>
+                            <span class="n">flattened_normalsd</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+
+                    <span class="c1"># Obtain the freestream velocity direction and magnitude by taking</span>
+                    <span class="c1"># alpha into account</span>
+                    <span class="n">alpha</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+                    <span class="k">if</span> <span class="s1">&#39;alpha&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">alphad</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">alphad</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="n">cosa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">sina</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">cosad</span> <span class="o">=</span> <span class="o">-</span><span class="n">sina</span> <span class="o">*</span> <span class="n">alphad</span>
+                    <span class="n">sinad</span> <span class="o">=</span> <span class="n">cosa</span> <span class="o">*</span> <span class="n">alphad</span>
+
+                    <span class="n">freestream_direction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosa</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sina</span><span class="p">])</span>
+                    <span class="n">v_inf</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">freestream_direction</span>
+                    <span class="k">if</span> <span class="s1">&#39;v&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">v_infd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">freestream_direction</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">v_infd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">))</span>
+                    <span class="n">v_infd</span> <span class="o">+=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosad</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sinad</span><span class="p">])</span>
+
+                    <span class="c1"># Populate the right-hand side of the linear system with the</span>
+                    <span class="c1"># expected velocities at each collocation point</span>
+                    <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">flattened_normalsd</span><span class="o">.</span>\
+                        <span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_inf</span><span class="p">)</span>
+                    <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">flattened_normals</span><span class="o">.</span>\
+                        <span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_infd</span><span class="p">)</span>
+
+                    <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span>
+
+                <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;rev&#39;</span><span class="p">:</span>
+
+                    <span class="c1"># Construct an flattened array with the normals of each surface in order</span>
+                    <span class="c1"># so we can do the normals with velocities to set up the right-hand-side</span>
+                    <span class="c1"># of the system.</span>
+                    <span class="n">flattened_normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">:</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                        <span class="n">num_panels</span> <span class="o">=</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">flattened_normals</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> \
+                            <span class="n">inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="n">num_panels</span>
+
+                    <span class="n">AIC_mtxb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                    <span class="n">flattened_normalsb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">flattened_normals</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                        <span class="n">AIC_mtxb</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">flattened_normals</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+                        <span class="n">flattened_normalsb</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">+=</span> \
+                            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">real</span> <span class="o">*</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+                    <span class="c1"># Actually assemble the AIC matrix</span>
+                    <span class="n">_assemble_AIC_mtx_b</span><span class="p">(</span><span class="n">AIC_mtxb</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">)</span>
+
+                    <span class="c1"># Obtain the freestream velocity direction and magnitude by taking</span>
+                    <span class="c1"># alpha into account</span>
+                    <span class="n">alpha</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+                    <span class="n">cosa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">sina</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosa</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sina</span><span class="p">])</span>
+                    <span class="n">v_inf</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">arr</span>
+
+                    <span class="n">fn</span> <span class="o">=</span> <span class="n">flattened_normals</span>
+                    <span class="n">fnb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">fn</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="n">rhsb</span> <span class="o">=</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span>
+
+                    <span class="n">v_infb</span> <span class="o">=</span> <span class="mf">0.</span>
+                    <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">)):</span>
+                        <span class="n">fnb</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-=</span> <span class="n">v_inf</span> <span class="o">*</span> <span class="n">rhsb</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+                        <span class="n">v_infb</span> <span class="o">-=</span> <span class="n">fn</span><span class="p">[</span><span class="n">ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">rhsb</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="s1">&#39;v&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">arr</span> <span class="o">*</span> <span class="n">v_infb</span><span class="p">)</span>
+                    <span class="n">arrb</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">v_infb</span>
+                    <span class="n">alphab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">arrb</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">alphab</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">arrb</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">alphab</span> <span class="o">*=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+
+                    <span class="k">if</span> <span class="s1">&#39;alpha&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                        <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">alphab</span>
+
+                    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">:</span>
+                        <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                        <span class="n">nx</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span>
+                        <span class="n">ny</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span>
+                        <span class="n">num_panels</span> <span class="o">=</span> <span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">ny</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">name</span><span class="o">+</span><span class="s1">&#39;_normals&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                            <span class="n">d_inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span> <span class="o">+=</span> \
+                                <span class="n">flattened_normalsb</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                            <span class="n">d_inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span> <span class="o">+=</span> \
+                                <span class="n">fnb</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                        <span class="n">i</span> <span class="o">+=</span> <span class="n">num_panels</span>
+
+        <span class="k">else</span><span class="p">:</span>
+<div class="viewcode-block" id="AssembleAIC.compute_partials"><a class="viewcode-back" href="../../../_srcdocs/packages/aerodynamics/assemble_aic.html#openaerostruct.aerodynamics.assemble_aic.AssembleAIC.compute_partials">[docs]</a>            <span class="k">def</span> <span class="nf">compute_partials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">partials</span><span class="p">):</span>
+
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+
+                    <span class="n">d_inputs</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">d_outputs</span> <span class="o">=</span> <span class="p">{}</span>
+
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()):</span>
+                            <span class="n">d_in_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                            <span class="n">d_in_b</span><span class="p">[:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                            <span class="n">d_in_b</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+                            <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_in_b</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                            <span class="n">AIC_mtxd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+                            <span class="c1"># Actually assemble the AIC matrix</span>
+                            <span class="n">_assemble_AIC_mtx_d</span><span class="p">(</span><span class="n">AIC_mtxd</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">)</span>
+
+                            <span class="c1"># Construct an flattened array with the normals of each surface in order</span>
+                            <span class="c1"># so we can do the normals with velocities to set up the right-hand-side</span>
+                            <span class="c1"># of the system.</span>
+                            <span class="n">flattened_normals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                            <span class="n">flattened_normalsd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">tot_panels</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+                            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="k">for</span> <span class="n">surface</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">surfaces</span><span class="p">:</span>
+                                <span class="n">name</span> <span class="o">=</span> <span class="n">surface</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+                                <span class="n">num_panels</span> <span class="o">=</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_x&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">surface</span><span class="p">[</span><span class="s1">&#39;num_y&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                                <span class="n">flattened_normals</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> \
+                                    <span class="n">inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">name</span><span class="o">+</span><span class="s1">&#39;_normals&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                                    <span class="n">flattened_normalsd</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> \
+                                        <span class="n">d_inputs</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_normals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">flattened_normalsd</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">num_panels</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                                <span class="n">i</span> <span class="o">+=</span> <span class="n">num_panels</span>
+
+                            <span class="c1"># Construct a matrix that is the AIC_mtx dotted by the normals at each</span>
+                            <span class="c1"># collocation point. This is used to compute the circulations</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.</span>
+                            <span class="k">for</span> <span class="n">ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">AIC_mtxd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span>
+                                    <span class="n">flattened_normals</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[:,</span> <span class="p">:]</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AIC_mtx</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span>
+                                    <span class="n">flattened_normalsd</span><span class="p">[:,</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+
+                            <span class="c1"># Obtain the freestream velocity direction and magnitude by taking</span>
+                            <span class="c1"># alpha into account</span>
+                            <span class="n">alpha</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+                            <span class="k">if</span> <span class="s1">&#39;alpha&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                                <span class="n">alphad</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;alpha&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">180.</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">alphad</span> <span class="o">=</span> <span class="mf">0.</span>
+                            <span class="n">cosa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                            <span class="n">sina</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+                            <span class="n">cosad</span> <span class="o">=</span> <span class="o">-</span><span class="n">sina</span> <span class="o">*</span> <span class="n">alphad</span>
+                            <span class="n">sinad</span> <span class="o">=</span> <span class="n">cosa</span> <span class="o">*</span> <span class="n">alphad</span>
+
+                            <span class="n">freestream_direction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosa</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sina</span><span class="p">])</span>
+                            <span class="n">v_inf</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">freestream_direction</span>
+                            <span class="k">if</span> <span class="s1">&#39;v&#39;</span> <span class="ow">in</span> <span class="n">d_inputs</span><span class="p">:</span>
+                                <span class="n">v_infd</span> <span class="o">=</span> <span class="n">d_inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">freestream_direction</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">v_infd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">))</span>
+                            <span class="n">v_infd</span> <span class="o">+=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cosad</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">sinad</span><span class="p">])</span>
+
+                            <span class="c1"># Populate the right-hand side of the linear system with the</span>
+                            <span class="c1"># expected velocities at each collocation point</span>
+                            <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">flattened_normalsd</span><span class="o">.</span>\
+                                <span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_inf</span><span class="p">)</span>
+                            <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">flattened_normals</span><span class="o">.</span>\
+                                <span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_infd</span><span class="p">)</span>
+
+                            <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span>
+
+                            <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">][:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="s1">&#39;mesh&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
+                                <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">][:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d_inputs</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+
+                        <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;AIC&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                        <span class="n">partials</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">,</span> <span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="n">d_outputs</span><span class="p">[</span><span class="s1">&#39;rhs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Aug 06, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.6.
+    </div>
+  </body>
+</html>

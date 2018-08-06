@@ -1,0 +1,164 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Common Pitfalls &#8212; OpenAeroStruct 2.0.0 documentation</title>
+    <link rel="stylesheet" href="../_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/style.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="OpenAeroStruct v1 to v2 Conversion" href="../v1_v2_conversion.html" />
+    <link rel="prev" title="Geometry Creation and Manipulation" href="geometry_manipulation.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../v1_v2_conversion.html" title="OpenAeroStruct v1 to v2 Conversion"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="geometry_manipulation.html" title="Geometry Creation and Manipulation"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../specialty_topics.html" accesskey="U">Specialty Topics</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_example.html">Quick Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aero_walkthrough.html">Aerodynamic Optimization Walkthrough</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../struct_example.html">Structural Optimization Example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../aerostructural_walkthrough.html">Aerostructural Walkthrough</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../more_examples.html">More Examples</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../specialty_topics.html">Specialty Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="geometry_manipulation.html">Geometry Creation and Manipulation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Common Pitfalls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mdo-course-homework-tips">MDO Course Homework Tips</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../v1_v2_conversion.html">OpenAeroStruct v1 to v2 Conversion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how_to_contribute.html">How to Contribute to OpenAeroStruct</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_srcdocs/index.html">Source Docs</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="common-pitfalls">
+<span id="id1"></span><h1>Common Pitfalls<a class="headerlink" href="#common-pitfalls" title="Permalink to this headline">¶</a></h1>
+<p>Here are some common issues and possible solutions for them.</p>
+<ul class="simple">
+<li>When debugging, you should use the smallest mesh size possible to minimize time invested.</li>
+<li>Start with a simple optimization case and gradually add design variables and constraints while examining the change in optimized result. The design trade-offs in a simpler optimization problem should be easier to understand.</li>
+<li>If you are running optimizations, it may be less computationally expensive to use <cite>force_fd = True</cite> within the problem dictionary.</li>
+<li>Use <cite>plot_wing</cite> often to visualize your results. Make sure your model is set up like you expect.</li>
+<li>After running an optimization case, always check to see if your constraints are satisfied. pyOptSparse prints out this information automatically, but if you’re using Scipy’s optimizer, you may need to manually print the constraints.</li>
+<li>Check out <a class="reference external" href="http://openmdao.readthedocs.io/en/latest/usr-guide/tutorials/recording.html#the-casereader">http://openmdao.readthedocs.io/en/latest/usr-guide/tutorials/recording.html#the-casereader</a> for more info about how to access the saved data in the outputted <cite>.db</cite> file.</li>
+</ul>
+</div>
+<div class="section" id="mdo-course-homework-tips">
+<h1>MDO Course Homework Tips<a class="headerlink" href="#mdo-course-homework-tips" title="Permalink to this headline">¶</a></h1>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Make sure to change the default surface and problem dictionaries to use values that are reasonable for your aircraft at the correct flight conditions. All units are SI.</p>
+</div>
+<ul class="simple">
+<li>If you are unsure of where a parameter or unknown is within the problem, view the <cite>.html</cite> files that are produced when running a case. You can use the search function to look for specific variables.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Some of the parameters may be promoted above the component level into the group level. For example, with an aerostructural case you would access the loads through <cite>prob[‘coupled.wing_loads.loads’]</cite>.</p>
+</div>
+<ul class="simple">
+<li>Download and use the most recent version of the OpenAeroStruct code as there may have been bug fixes for certain issues.</li>
+<li>Make sure all of your Python packages are up-to-date, including (but not limited to) Numpy, Scipy, Matplotlib,</li>
+<li>Use the <cite>thickness_intersects</cite> constraint when varying thickness to maintain a physically possible solution.</li>
+<li>To set up a structural optimization case with a certain array of loads from an aerodynamic analysis, first perform aerostructural analysis and save the outputted loads using <cite>numpy.save()</cite>. Then you can load the saved array using <cite>numpy.load()</cite> and set the loads when you initialize your structural optimization problem.</li>
+<li>To create your own objective function, examine the <cite>FunctionalBreguetRange</cite> component within <cite>functionals.py</cite>. This component computes the fuel burn of the aircraft based on the calculated CL, CD, and structural weight values, along with other provided parameters. You can modify this component to also output a weighted objective between the fuel burn and the weight.</li>
+<li>The <cite>structural_weight</cite> parameter within the structural discipline is in Newtons, not kg.</li>
+<li>To change the linear and nonlinear solvers for the aerostructural problem, look for the <cite>linear_solver</cite> and <cite>nl_solver</cite> methods within <cite>setup_aerostruct</cite> in <cite>run_classes.py</cite>. See <a class="reference external" href="http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html">http://openmdao.readthedocs.io/en/latest/srcdocs/packages/openmdao.solvers.html</a> for info on different solvers. Try using Newton and NLGaussSeidel on the coupled system. Check out MDO_Intro_OpenMDAO_OpenAeroStruct.pdf on Canvas for detailed information.</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Each solver has different default tolerance values. To make a valid comparison between solvers, consistently set the tolerance criteria for each solver. See the OpenMDAO documentation for the specific keywords and defaults.</p>
+</div>
+<ul class="simple">
+<li>If you change an option or parameter in either the surface or problem dictionary and the results do not seem to change, check to make sure that you put the option in the correct dictionary. For example, you set the optimizer in the problem dictionary and set the CD0 in the surface dictionary.</li>
+<li>See the MDO course notes for an explanation of the process for sequential optimization. The correct design variables, constraints, and objective functions are detailed there.</li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../v1_v2_conversion.html" title="OpenAeroStruct v1 to v2 Conversion"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="geometry_manipulation.html" title="Geometry Creation and Manipulation"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">OpenAeroStruct 2.0.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../specialty_topics.html" >Specialty Topics</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, John Jasa, Dr. John Hwang, Justin S. Gray.
+      Last updated on Aug 06, 2018.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.6.
+    </div>
+  </body>
+</html>

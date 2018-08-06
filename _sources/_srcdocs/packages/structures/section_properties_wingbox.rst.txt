@@ -1,0 +1,16 @@
+.. index:: section_properties_wingbox.py
+
+.. _openaerostruct.structures.section_properties_wingbox.py:
+
+section_properties_wingbox.py
+-----------------------------
+
+.. automodule:: openaerostruct.structures.section_properties_wingbox
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

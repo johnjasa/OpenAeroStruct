@@ -1,0 +1,16 @@
+.. index:: monotonic_constraint.py
+
+.. _openaerostruct.geometry.monotonic_constraint.py:
+
+monotonic_constraint.py
+-----------------------
+
+.. automodule:: openaerostruct.geometry.monotonic_constraint
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

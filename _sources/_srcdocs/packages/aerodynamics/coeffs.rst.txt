@@ -1,0 +1,16 @@
+.. index:: coeffs.py
+
+.. _openaerostruct.aerodynamics.coeffs.py:
+
+coeffs.py
+---------
+
+.. automodule:: openaerostruct.aerodynamics.coeffs
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

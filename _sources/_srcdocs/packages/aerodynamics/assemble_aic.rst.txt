@@ -1,0 +1,16 @@
+.. index:: assemble_aic.py
+
+.. _openaerostruct.aerodynamics.assemble_aic.py:
+
+assemble_aic.py
+---------------
+
+.. automodule:: openaerostruct.aerodynamics.assemble_aic
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1

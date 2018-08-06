@@ -1,0 +1,16 @@
+.. index:: total_drag.py
+
+.. _openaerostruct.aerodynamics.total_drag.py:
+
+total_drag.py
+-------------
+
+.. automodule:: openaerostruct.aerodynamics.total_drag
+   :members:
+   :undoc-members:
+   :special-members: __init__, __contains__, __iter__, __setitem__, __getitem__
+   :show-inheritance:
+   :inherited-members:
+
+.. toctree::
+   :maxdepth: 1
