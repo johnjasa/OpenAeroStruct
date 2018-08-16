@@ -1,4 +1,4 @@
-from openmdao.api import Group, LinearRunOnce
+from openmdao.api import Group, LinearRunOnce, DirectSolver
 from openaerostruct.aerodynamics.geometry import VLMGeometry
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
@@ -49,7 +49,9 @@ class AeroPoint(Group):
         # this component requires information from all surfaces because
         # each surface interacts with the others.
         aero_states = VLMStates(surfaces=surfaces)
+        # aero_states.linear_solver = DirectSolver(assemble_jac=True)
         aero_states.linear_solver = LinearRunOnce()
+
 
         self.add_subsystem('aero_states',
                  aero_states,
