@@ -11,7 +11,7 @@ except:
     fortran_flag = False
     data_type = complex
 
-@unittest.skipUnless(fortran_flag, "Fortran is required.")
+# @unittest.skipUnless(fortran_flag, "Fortran is required.")
 class Test(unittest.TestCase):
 
     def test(self):
@@ -146,12 +146,16 @@ class Test(unittest.TestCase):
         # Set up the problem
         prob.setup()
 
-        # print('gona check')
-        # prob.run_model()
+        prob.run_model()
         # prob.check_partials(compact_print=True)
-        # exit()
-        prob.run_driver()
+        data = prob.compute_totals()
+        for dat in data:
+            print()
+            print(dat)
+            print(data[dat])
+        exit()
 
+        prob.run_driver()
 
         assert_rel_error(self, prob['aero_point_0.wing_perf.CL'][0], 0.45, 1e-6)
         assert_rel_error(self, prob['aero_point_0.wing_perf.CD'][0], 0.03231556149303963, 1e-6)
