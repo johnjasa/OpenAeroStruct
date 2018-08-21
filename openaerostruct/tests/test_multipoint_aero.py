@@ -148,6 +148,7 @@ class Test(unittest.TestCase):
 
         prob.run_model()
         # prob.check_partials(compact_print=True)
+        prob.check_totals()
         data = prob.compute_totals()
         for dat in data:
             print()
