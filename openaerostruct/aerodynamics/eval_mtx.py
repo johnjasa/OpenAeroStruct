@@ -227,7 +227,7 @@ class EvalVelMtx(ExplicitComponent):
             #
             if surface['symmetry']:
                 res1 = result1[:, :, :ny-1, :]
-                res1 += result1[:, :, ny-1:, :][:, :, ::-1, :]
+                # res1 += result1[:, :, ny-1:, :][:, :, ::-1, :]
                 # res2 = result2[:, :, :ny-1, :]
                 # res2 += result2[:, :, ny-1:, :][:, :, ::-1, :]
                 # res3 = result3[:, :, :ny-1, :]
@@ -297,8 +297,8 @@ class EvalVelMtx(ExplicitComponent):
                 r2 = inputs[vectors_name][:, 0:-1, 0:-1, :]
                 derivs[2, :, :, :ny-1, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, :ny-1, :, :]
                 derivs[0, :, :, :ny-1, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, :ny-1, :, :]
-                derivs[2, :, :, ny-1:, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
-                derivs[0, :, :, ny-1:, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
+                # derivs[2, :, :, ny-1:, :] += compute_finite_vortex_deriv1(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
+                # derivs[0, :, :, ny-1:, :] += compute_finite_vortex_deriv2(r1, r2, deriv_array)[:, :, ny-1:, :, :][:, :, ::-1]
                 #
                 # # right vortex
                 # r1 = inputs[vectors_name][:, 0:-1, 0:-1, :]
