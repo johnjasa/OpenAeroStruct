@@ -71,6 +71,12 @@ def run_test(test_obj, comp, complex_flag=False, compact_print=True, method='fd'
 
     check = prob.check_partials(compact_print=compact_print, method=method, step=step)
 
+    fwd = check['comp.comp']['wing_test_name_vel_mtx', 'wing_test_name_vectors']['J_fwd']
+    fd = check['comp.comp']['wing_test_name_vel_mtx', 'wing_test_name_vectors']['J_fd']
+
+    view_mat(fd, fwd)
+    exit()
+
     assert_check_partials(check, atol=atol, rtol=rtol)
 
 def get_default_surfaces():
