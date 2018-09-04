@@ -170,13 +170,13 @@ class VonMisesTube(ExplicitComponent):
             dtmpdr1z = 1/tmp * (r1z - r0z)
 
             # Combine all of the derivtives for tmp
-            dtmpdDisp = np.zeros(2 * 6)
-            dr0xdDisp = np.zeros(2*6)
-            dr0ydDisp = np.zeros(2*6)
-            dr0zdDisp = np.zeros(2*6)
-            dr1xdDisp = np.zeros(2*6)
-            dr1ydDisp = np.zeros(2*6)
-            dr1zdDisp = np.zeros(2*6)
+            dtmpdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr0xdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr0ydDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr0zdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr1xdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr1ydDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
+            dr1zdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
 
             idx1 = 3
             idx2 = 6 + 3
@@ -230,7 +230,7 @@ class VonMisesTube(ExplicitComponent):
             dsxx1dDisp[idx2:idx2+3] = dsxx1du1x * dxddisp
 
             # Combine sxt term
-            dsxtdDisp = np.zeros(2 * 6)
+            dsxtdDisp = np.zeros(2 * 6, dtype=type(disp[0][0]))
             idx1 = 3
             idx2 = 6 + 3
 

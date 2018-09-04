@@ -8,6 +8,7 @@ from openaerostruct.structures.spatial_beam_states import SpatialBeamStates
 from openaerostruct.aerodynamics.functionals import VLMFunctionals
 from openaerostruct.structures.spatial_beam_functionals import SpatialBeamFunctionals
 from openaerostruct.functionals.total_performance import TotalPerformance
+from openaerostruct.transfer.load_transfer_group import LoadTransferGroup
 from openaerostruct.transfer.load_transfer import LoadTransfer
 from openaerostruct.aerodynamics.states import VLMStates
 from openaerostruct.structures.tube_group import TubeGroup
@@ -215,7 +216,7 @@ class AerostructPoint(Group):
             name = surface['name']
 
             # Add a loads component to the coupled group
-            coupled.add_subsystem(name + '_loads', LoadTransfer(surface=surface))
+            coupled.add_subsystem(name + '_loads', LoadTransferGroup(surface=surface))
 
         """
         ### Change the solver settings here ###

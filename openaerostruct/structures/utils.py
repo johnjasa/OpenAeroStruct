@@ -38,8 +38,8 @@ def cross_d(a,b):
         if b.shape!=(3,):
             raise ValueError('b must be a (3,) nd array')
 
-    dcda = np.zeros([3,3])
-    dcdb = np.zeros([3,3])
+    dcda = np.zeros([3,3], dtype=type(a[0]))
+    dcdb = np.zeros([3,3], dtype=type(a[0]))
 
     dcda[0,1]=b[2]
     dcda[0,2]=-b[1]
