@@ -59,7 +59,7 @@ class VonMisesTube(ExplicitComponent):
 
         self.declare_partials('*', 'disp', rows=rows, cols=cols)
 
-        self.declare_partials('vonmises', ['E', 'G'], method='fd')
+        self.declare_partials('vonmises', ['E', 'G'], method='fd', step=0.01)
 
     def compute(self, inputs, outputs):
         dtype = float

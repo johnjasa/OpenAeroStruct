@@ -53,7 +53,7 @@ class LocalStiff(ExplicitComponent):
         self.declare_partials('local_stiff', 'Iz', rows=rows, cols=cols)
         self.declare_partials('local_stiff', 'element_lengths', rows=rows, cols=cols)
 
-        self.declare_partials('local_stiff', ['E', 'G'], method='fd')
+        self.declare_partials('local_stiff', ['E', 'G'], method='fd', step=0.01)
 
     def compute(self, inputs, outputs):
         surface = self.options['surface']
