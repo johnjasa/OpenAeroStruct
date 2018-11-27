@@ -37,12 +37,14 @@ class Weight(ExplicitComponent):
         self.add_input('A', val=np.ones((self.ny - 1)), units='m**2')
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.)
-        self.add_input('mrho', val=1600.)
+        self.add_input('mrho', val=3000., units='kg/m**3')
 
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
 
         self.declare_partials('structural_weight', ['A','nodes','load_factor','mrho'])
+
+        self.declare_partials('element_weights', 'mrho')
 
         self.declare_partials('element_weights', 'load_factor')
         row_col = np.arange(self.ny-1, dtype=int)

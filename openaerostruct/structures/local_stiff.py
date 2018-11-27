@@ -34,6 +34,8 @@ class LocalStiff(ExplicitComponent):
 
         self.ny = ny = surface['mesh'].shape[1]
 
+        self.add_input('E', val=70.e9, units='N/m**2')
+        self.add_input('G', val=30.e9, units='N/m**2')
         self.add_input('A', shape=ny - 1, units='m**2')
         self.add_input('J', shape=ny - 1, units='m**4')
         self.add_input('Iy', shape=ny - 1, units='m**4')
@@ -51,12 +53,14 @@ class LocalStiff(ExplicitComponent):
         self.declare_partials('local_stiff', 'Iz', rows=rows, cols=cols)
         self.declare_partials('local_stiff', 'element_lengths', rows=rows, cols=cols)
 
+        self.declare_partials('local_stiff', ['E', 'G'], method='fd')
+
     def compute(self, inputs, outputs):
         surface = self.options['surface']
 
         ny = self.ny
-        E = surface['E']
-        G = surface['G']
+        E = inputs['E']
+        G = inputs['G']
 
         A  = inputs['A']
         Iy = inputs['Iy']
@@ -88,8 +92,8 @@ class LocalStiff(ExplicitComponent):
     def compute_partials(self, inputs, partials):
         surface = self.options['surface']
         ny = surface['mesh'].shape[1]
-        E = surface['E']
-        G = surface['G']
+        E = inputs['E']
+        G = inputs['G']
 
         A  = inputs['A']
         Iy = inputs['Iy']

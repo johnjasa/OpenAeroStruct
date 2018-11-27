@@ -35,11 +35,10 @@ class VonMisesTube(ExplicitComponent):
         self.add_input('nodes', val=np.zeros((ny, 3)), units='m')
         self.add_input('radius', val=np.zeros((ny - 1)), units='m')
         self.add_input('disp', val=np.zeros((ny, 6)), units='m')
+        self.add_input('E', val=70.e9, units='N/m**2')
+        self.add_input('G', val=30.e9, units='N/m**2')
 
         self.add_output('vonmises', val=np.zeros((ny-1, 2)), units='N/m**2')
-
-        self.E = surface['E']
-        self.G = surface['G']
 
         row = np.concatenate([np.zeros(6), np.ones(6)])
         rows = np.tile(row, ny-1) + np.repeat(2*np.arange(ny-1), 12)
@@ -60,6 +59,8 @@ class VonMisesTube(ExplicitComponent):
 
         self.declare_partials('*', 'disp', rows=rows, cols=cols)
 
+        self.declare_partials('vonmises', ['E', 'G'], method='fd')
+
     def compute(self, inputs, outputs):
         dtype = float
         if self.under_complex_step:
@@ -70,9 +71,9 @@ class VonMisesTube(ExplicitComponent):
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']
+        E = inputs['E']
+        G = inputs['G']
         T = self.T
-        E = self.E
-        G = self.G
         x_gl = self.x_gl
 
         num_elems = self.ny - 1
@@ -108,9 +109,9 @@ class VonMisesTube(ExplicitComponent):
         radius = inputs['radius']
         disp = inputs['disp']
         nodes = inputs['nodes']
+        E = inputs['E']
+        G = inputs['G']
         T = self.T
-        E = self.E
-        G = self.G
         x_gl = self.x_gl
 
         num_elems = self.ny - 1
