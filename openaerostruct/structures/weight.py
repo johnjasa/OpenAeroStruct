@@ -37,11 +37,12 @@ class Weight(ExplicitComponent):
         self.add_input('A', val=np.ones((self.ny - 1)), units='m**2')
         self.add_input('nodes', val=np.zeros((self.ny, 3)), units='m')
         self.add_input('load_factor', val=1.)
+        self.add_input('mrho', val=1600.)
 
         self.add_output('structural_weight', val=0., units='N')
         self.add_output('element_weights', val=np.zeros((self.ny-1)), units='N')
 
-        self.declare_partials('structural_weight', ['A','nodes','load_factor'])
+        self.declare_partials('structural_weight', ['A','nodes','load_factor','mrho'])
 
         self.declare_partials('element_weights', 'load_factor')
         row_col = np.arange(self.ny-1, dtype=int)
@@ -60,7 +61,7 @@ class Weight(ExplicitComponent):
     def compute(self, inputs, outputs):
         A = inputs['A']
         nodes = inputs['nodes']
-        mrho = self.surface['mrho']
+        mrho = inputs['mrho']
         wwr = self.surface['wing_weight_ratio']
         lf = inputs['load_factor']
 
@@ -84,7 +85,7 @@ class Weight(ExplicitComponent):
 
         A = inputs['A']
         nodes = inputs['nodes']
-        mrho = self.surface['mrho']
+        mrho = inputs['mrho']
         wwr = self.surface['wing_weight_ratio']
         ny = self.ny
         lf = inputs['load_factor']
@@ -96,6 +97,14 @@ class Weight(ExplicitComponent):
         volume = np.sum(element_volumes)
         const2 = mrho * 9.81 * wwr * lf
         weight = volume * const2
+
+        delement_weights_dmrho = 9.81 * wwr * lf
+        partials['element_weights', 'mrho'] = delement_weights_dmrho
+
+        dweight_dmrho = np.sum(delement_weights_dmrho)
+        if self.surface['symmetry']:
+            dweight_dmrho *= 2.
+        partials['structural_weight', 'mrho'] = dweight_dmrho
 
         # First we will solve for dweight_dA
         # Calculate the volume and weight of the total structure
