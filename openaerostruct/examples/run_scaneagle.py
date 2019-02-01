@@ -98,10 +98,7 @@ surface = {
             'with_wave' : False,     # if true, compute wave drag
 
             # Material properties taken from http://www.performance-composites.com/carbonfibre/mechanicalproperties_2.asp
-            'E' : 85.e9,
-            'G' : 25.e9,
             'yield' : 350.e6,
-            'mrho' : 1.6e3,
 
             'fem_origin' : 0.35,    # normalized chordwise location of the spar
             'wing_weight_ratio' : 1., # multiplicative factor on the computed structural weight
@@ -127,6 +124,9 @@ indep_var_comp.add_output('W0', val=10.,  units='kg')
 indep_var_comp.add_output('speed_of_sound', val=322.2, units='m/s')
 indep_var_comp.add_output('load_factor', val=1.)
 indep_var_comp.add_output('empty_cg', val=np.array([0.2, 0., 0.]), units='m')
+indep_var_comp.add_output('E', val=85.e9, units='N/m**2')
+indep_var_comp.add_output('G', val=25.e9, units='N/m**2')
+indep_var_comp.add_output('mrho', val=1.6e3, units='kg/m**3')
 
 prob.model.add_subsystem('prob_vars',
      indep_var_comp,
@@ -170,10 +170,26 @@ prob.model.connect(name + '.cg_location', point_name + '.' + 'total_perf.' + nam
 prob.model.connect(name + '.structural_weight', point_name + '.' + 'total_perf.' + name + '_structural_weight')
 prob.model.connect(name + '.t_over_c', com_name + '.t_over_c')
 
+# Added these connections
+prob.model.connect('E', com_name + '.struct_funcs.vonmises.E')
+prob.model.connect('G', com_name + '.struct_funcs.vonmises.G')
+prob.model.connect('mrho', name + '.struct_setup.structural_weight.mrho')
+prob.model.connect('E', name + '.struct_setup.assembly.E')
+prob.model.connect('G', name + '.struct_setup.assembly.G')
+
+# # Set the optimizer type
+# from openmdao.api import ScipyOptimizeDriver
+# prob.driver = ScipyOptimizeDriver()
+# prob.driver.options['tol'] = 1e-7
+
 # Set the optimizer type
-from openmdao.api import ScipyOptimizeDriver
-prob.driver = ScipyOptimizeDriver()
-prob.driver.options['tol'] = 1e-7
+from openmdao.api import pyOptSparseDriver
+prob.driver = pyOptSparseDriver() # ScipyOptimizeDriver()
+# prob.driver.options['tol'] = 1e-7
+prob.driver.options['optimizer'] = 'SNOPT'
+# prob.driver.options['gradient method'] = 'pyopt_fd' # 'snopt_fd'
+prob.driver.options['print_results'] = True
+prob.driver.opt_settings['Major feasibility tolerance'] = 1e-9
 
 # Record data from this problem so we can visualize it using plot_wing
 recorder = SqliteRecorder("aerostruct.db")
@@ -203,16 +219,16 @@ prob.model.add_constraint('wing.twist_cp', lower=np.array([-1e20, -1e20, 5.]), u
 prob.model.add_objective('AS_point_0.fuelburn', scaler=.1)
 
 # Set up the problem
-prob.setup()
+prob.setup(check=True)
 
 # Use this if you just want to run analysis and not optimization
-# prob.run_model()
+prob.run_model()
 
 # Actually run the optimization problem
-prob.run_model()
-fval0 = prob['AS_point_0.fuelburn'][0]
+prob.run_driver()
 
-prob.run_model()
-fval1 = prob['AS_point_0.fuelburn'][0]
-
-print(fval0, fval1, fval0-fval1)
+print("fval = ", prob['AS_point_0.fuelburn'][0])
+print("twist = ", prob['wing.geometry.twist'])
+print("thickness = ", prob['wing.thickness'])
+print("sweep = ", prob['wing.sweep'])
+print("aoa = ", prob['alpha'])
